@@ -23,24 +23,16 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-/**
- * Created by 鏉庢灄宄� on 2018/8/5.
- */
 public class RouterServerHandlerV2 extends SimpleChannelInboundHandler<ByteBuf> {
-    static ExecutorService executorService = Executors.newSingleThreadExecutor();
-    PooledByteBufAllocator allocator;
+    private static ExecutorService executorService = Executors.newSingleThreadExecutor();
+    private PooledByteBufAllocator allocator = new PooledByteBufAllocator(false);
 
     @Override
     public void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) {
         byte[] body = new byte[msg.readableBytes()];
-        executorService.execute(() ->
-        {
-            if (allocator == null)
-                allocator = new PooledByteBufAllocator(false);
-            //瑙ｆ瀽璇锋眰娑堟伅锛屽仛璺敱杞彂锛屼唬鐮佺渷鐣�...
-            //杞彂鎴愬姛锛岃繑鍥炲搷搴旂粰瀹㈡埛绔�
+        executorService.execute(() -> {
             ByteBuf respMsg = allocator.heapBuffer(body.length);
-            respMsg.writeBytes(body);//浣滀负绀轰緥锛岀畝鍖栧鐞嗭紝灏嗚姹傝繑鍥�
+            respMsg.writeBytes(body);
             ctx.writeAndFlush(respMsg);
         });
     }

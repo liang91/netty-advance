@@ -6,15 +6,9 @@ package io.netty.cases.chapter.demo4;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaders;
 
-/**
- * Created by 李林峰 on 2018/8/11.
- */
 public class HttpResponse {
-
     private final HttpHeaders header;
-
     private final FullHttpResponse response;
-
     private byte[] body;
 
     public HttpResponse(FullHttpResponse response) {

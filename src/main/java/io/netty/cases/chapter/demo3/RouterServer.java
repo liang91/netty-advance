@@ -20,18 +20,13 @@ import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.LineBasedFrameDecoder;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 
-/**
- * Created by 鏉庢灄宄� on 2018/8/5.
- */
 public final class RouterServer {
-
-    static final int PORT = Integer.parseInt(System.getProperty("port", "18083"));
-
+    static final int PORT = 18083;
     public static void main(String[] args) throws Exception {
-        // Configure the server.
         EventLoopGroup bossGroup = new NioEventLoopGroup(1);
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         try {
@@ -42,19 +37,15 @@ public final class RouterServer {
                     .handler(new LoggingHandler(LogLevel.INFO))
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
-                        public void initChannel(SocketChannel ch) throws Exception {
+                        public void initChannel(SocketChannel ch) {
                             ChannelPipeline p = ch.pipeline();
-                            p.addLast(new RouterServerHandlerV2());
+                            p.addLast(new LineBasedFrameDecoder(1024));
+                            p.addLast(new RouterServerHandler());
                         }
                     });
-
-            // Start the server.
             ChannelFuture f = b.bind(PORT).sync();
-
-            // Wait until the server socket is closed.
             f.channel().closeFuture().sync();
         } finally {
-            // Shut down all event loops to terminate all threads.
             bossGroup.shutdownGracefully();
             workerGroup.shutdownGracefully();
         }

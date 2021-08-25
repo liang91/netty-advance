@@ -34,7 +34,6 @@ public final class ClientPool {
     static final int PORT = Integer.parseInt(System.getProperty("port", "18081"));
 
     public static void main(String[] args) throws Exception {
-//        TimeUnit.SECONDS.sleep(30);
         initClientPool(100);
     }
 

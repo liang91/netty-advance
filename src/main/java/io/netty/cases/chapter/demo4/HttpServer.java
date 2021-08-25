@@ -14,33 +14,27 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
 
-/**
- * Created by 李林峰 on 2018/8/11.
- */
 public class HttpServer {
+    public static final String host = "127.0.0.1";
+    public static final int port = 18084;
 
     public static void main(String[] args) throws Exception {
-        HttpServer server = new HttpServer();
-        int port = 18084;
-        System.out.println("HTTP server listening on " + port);
-        server.bind(port);
-    }
-
-    private void bind(int port) throws Exception {
         EventLoopGroup bossGroup = new NioEventLoopGroup(1);
-        EventLoopGroup workerGroup = new NioEventLoopGroup(1);
+        EventLoopGroup workerGroup = new NioEventLoopGroup();
         try {
             ServerBootstrap b = new ServerBootstrap();
-            b.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class)
+            b.group(bossGroup, workerGroup)
+                    .channel(NioServerSocketChannel.class)
+                    .option(ChannelOption.SO_BACKLOG, 128)
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
-                        public void initChannel(SocketChannel ch) throws Exception {
+                        public void initChannel(SocketChannel ch) {
                             ch.pipeline().addLast(new HttpServerCodec());
                             ch.pipeline().addLast(new HttpObjectAggregator(Short.MAX_VALUE));
                             ch.pipeline().addLast(new HttpServerHandler());
                         }
-                    }).option(ChannelOption.SO_BACKLOG, 128);
-            ChannelFuture f = b.bind("127.0.0.1", port).sync();
+                    });
+            ChannelFuture f = b.bind(host, port).sync();
             f.channel().closeFuture().sync();
         } finally {
             workerGroup.shutdownGracefully();

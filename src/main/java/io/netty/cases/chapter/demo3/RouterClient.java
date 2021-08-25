@@ -20,16 +20,13 @@ import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.LineBasedFrameDecoder;
 
-/**
- * Created by 鏉庢灄宄� on 2018/8/5.
- */
 public final class RouterClient {
-    static final String HOST = System.getProperty("host", "127.0.0.1");
-    static final int PORT = Integer.parseInt(System.getProperty("port", "18083"));
+    private static final String HOST = "127.0.0.1";
+    private static final int PORT = 18083;
 
     public static void main(String[] args) throws Exception {
-        // Configure the client.
         EventLoopGroup group = new NioEventLoopGroup();
         try {
             Bootstrap b = new Bootstrap();
@@ -38,19 +35,15 @@ public final class RouterClient {
                     .option(ChannelOption.TCP_NODELAY, true)
                     .handler(new ChannelInitializer<SocketChannel>() {
                         @Override
-                        public void initChannel(SocketChannel ch) throws Exception {
+                        public void initChannel(SocketChannel ch) {
                             ChannelPipeline p = ch.pipeline();
+                            p.addLast(new LineBasedFrameDecoder(16));
                             p.addLast(new RouterClientHandler());
                         }
                     });
-
-            // Start the client.
             ChannelFuture f = b.connect(HOST, PORT).sync();
-
-            // Wait until the connection is closed.
             f.channel().closeFuture().sync();
         } finally {
-            // Shut down the event loop to terminate all threads.
             group.shutdownGracefully();
         }
     }

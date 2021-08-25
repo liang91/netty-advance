@@ -15,34 +15,54 @@
  */
 package io.netty.cases.chapter.demo3;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.util.ReferenceCountUtil;
 
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * Created by 鏉庢灄宄� on 2018/8/5.
- */
 public class RouterServerHandler extends ChannelInboundHandlerAdapter {
-    static ExecutorService executorService = Executors.newSingleThreadExecutor();
-    PooledByteBufAllocator allocator = new PooledByteBufAllocator(false);
+    private static final ExecutorService executorService = Executors.newSingleThreadExecutor();
+    private static final ScheduledExecutorService counterService = Executors.newSingleThreadScheduledExecutor();
+    private static final AtomicInteger counter = new AtomicInteger();
+    private static final Object lock = new Object();
+    static {
+        counterService.scheduleAtFixedRate(() -> {
+            int count = counter.get();
+            System.out.println(count);
+            counter.set(0);
+
+        }, 0, 1, TimeUnit.SECONDS);
+    }
+    private static final byte[] msg = "I'm Fine\n".getBytes(StandardCharsets.UTF_8);
+
+    @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        super.channelActive(ctx);
+    }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
-        ByteBuf reqMsg = (ByteBuf) msg;
-        byte[] body = new byte[reqMsg.readableBytes()];
-//        ReferenceCountUtil.release(reqMsg);
-        executorService.execute(() ->
-        {
-            //瑙ｆ瀽璇锋眰娑堟伅锛屽仛璺敱杞彂锛屼唬鐮佺渷鐣�...
-            //杞彂鎴愬姛锛岃繑鍥炲搷搴旂粰瀹㈡埛绔�
-            ByteBuf respMsg = allocator.heapBuffer(body.length);
-            respMsg.writeBytes(body);//浣滀负绀轰緥锛岀畝鍖栧鐞嗭紝灏嗚姹傝繑鍥�
-            ctx.writeAndFlush(respMsg);
-        });
+        ReferenceCountUtil.release(msg);
+        if (counter.incrementAndGet() > 100000) {
+            synchronized (lock) {
+                System.out.println("entered");
+                if (counter.get() > 100000) {
+                    System.out.println("closed");
+                    counter.set(0);
+                    ctx.close();
+                    return;
+                }
+            }
+        }
+        executorService.execute(() -> ctx.writeAndFlush(Unpooled.buffer(16).writeBytes(RouterServerHandler.msg)));
+//        executorService.execute(() -> ctx.writeAndFlush(ctx.alloc().buffer(16).writeBytes(RouterServerHandler.msg)));
     }
 
     @Override

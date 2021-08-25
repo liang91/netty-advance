@@ -22,16 +22,12 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.logging.LoggingHandler;
 
-/**
- * Created by 鏉庢灄宄� on 2018/8/5.
- */
 public final class ClientPoolError1 {
 
     static final String HOST = System.getProperty("host", "127.0.0.1");
     static final int PORT = Integer.parseInt(System.getProperty("port", "18081"));
 
     public static void main(String[] args) throws Exception {
-//        TimeUnit.SECONDS.sleep(30);
         initClientPool(100);
     }
 

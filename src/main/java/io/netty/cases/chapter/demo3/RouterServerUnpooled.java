@@ -24,15 +24,9 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 
-/**
- * Created by 李林峰 on 2018/8/5.
- */
 public final class RouterServerUnpooled {
-
-    static final int PORT = Integer.parseInt(System.getProperty("port", "18083"));
-
+    static final int PORT = 18083;
     public static void main(String[] args) throws Exception {
-        // Configure the server.
         EventLoopGroup bossGroup = new NioEventLoopGroup(1);
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         try {
@@ -49,14 +43,9 @@ public final class RouterServerUnpooled {
                             p.addLast(new RouterServerHandler());
                         }
                     });
-
-            // Start the server.
             ChannelFuture f = b.bind(PORT).sync();
-
-            // Wait until the server socket is closed.
             f.channel().closeFuture().sync();
         } finally {
-            // Shut down all event loops to terminate all threads.
             bossGroup.shutdownGracefully();
             workerGroup.shutdownGracefully();
         }

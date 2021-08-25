@@ -27,20 +27,17 @@ public class MockServer {
                 .handler(new LoggingHandler(LogLevel.INFO))
                 .childHandler(new ChannelInitializer<SocketChannel>() {
                     @Override
-                    public void initChannel(SocketChannel ch) throws Exception {
+                    public void initChannel(SocketChannel ch) {
                         ChannelPipeline p = ch.pipeline();
                         p.addLast(new LoggingHandler(LogLevel.INFO));
                     }
                 });
         ChannelFuture f = b.bind(18081).sync();
-        f.channel().closeFuture().addListener(new ChannelFutureListener() {
-            @Override
-            public void operationComplete(ChannelFuture future) throws Exception {
-                //业务逻辑处理代码，此处省略...
-                bossGroup.shutdownGracefully();
-                workerGroup.shutdownGracefully();
-                logger.info(future.channel().toString() + " 链路关闭");
-            }
+        f.channel().closeFuture().addListener((ChannelFutureListener) future -> {
+            //业务逻辑处理代码，此处省略
+            bossGroup.shutdownGracefully();
+            workerGroup.shutdownGracefully();
+            logger.info(future.channel().toString() + " 链路关闭");
         });
     }
 }

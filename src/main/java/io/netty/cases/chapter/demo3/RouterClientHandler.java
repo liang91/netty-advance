@@ -15,36 +15,27 @@
  */
 package io.netty.cases.chapter.demo3;
 
-import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.util.ReferenceCountUtil;
 
-/**
- * Created by 鏉庢灄宄� on 2018/8/5.
- */
+import java.nio.charset.StandardCharsets;
+
 public class RouterClientHandler extends ChannelInboundHandlerAdapter {
-
-    private final ByteBuf firstMessage;
-
-    /**
-     * Creates a client-side handler.
-     */
-    public RouterClientHandler() {
-        firstMessage = Unpooled.buffer(1024);
-        for (int i = 0; i < firstMessage.capacity(); i++) {
-            firstMessage.writeByte((byte) i);
-        }
-    }
+    private static final byte[] msg = "are you ok\n".getBytes(StandardCharsets.UTF_8);
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
-        ctx.writeAndFlush(firstMessage);
+        System.out.println(ctx.alloc().getClass().getSimpleName() + "-" + ctx.alloc().isDirectBufferPooled());
+        ctx.writeAndFlush(ctx.alloc().buffer(16).writeBytes(RouterClientHandler.msg));
     }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
-        ctx.write(msg);
+        ReferenceCountUtil.release(msg);
+        ctx.writeAndFlush(Unpooled.buffer(16).writeBytes(RouterClientHandler.msg));
+//        ctx.writeAndFlush(ctx.alloc().buffer(16).writeBytes(RouterClientHandler.msg));
     }
 
     @Override
@@ -54,7 +45,6 @@ public class RouterClientHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        // Close the connection when an exception is raised.
         cause.printStackTrace();
         ctx.close();
     }
