@@ -19,14 +19,25 @@ import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 
-/**
- * Created by 李林峰 on 2018/8/11.
- */
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
 @Sharable
 public class EchoServerHandler extends ChannelInboundHandlerAdapter {
+    private static final AtomicInteger counter = new AtomicInteger();
+    private static final ScheduledExecutorService tick = Executors.newSingleThreadScheduledExecutor();
+    static {
+        tick.scheduleAtFixedRate(() -> {
+            System.out.println(counter.get());
+            counter.set(0);
+        }, 0, 1, TimeUnit.SECONDS);
+    }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
+        counter.incrementAndGet();
         ctx.write(msg);
     }
 
@@ -37,7 +48,6 @@ public class EchoServerHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        // Close the connection when an exception is raised.
         cause.printStackTrace();
         ctx.close();
     }

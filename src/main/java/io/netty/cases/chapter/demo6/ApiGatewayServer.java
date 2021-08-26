@@ -23,12 +23,8 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 
-/**
- * Created by 李林峰 on 2018/8/11.
- */
 public final class ApiGatewayServer {
-
-    static final int PORT = Integer.parseInt(System.getProperty("port", "18086"));
+    static final int PORT = 18086;
 
     public static void main(String[] args) throws Exception {
         EventLoopGroup bossGroup = new NioEventLoopGroup(1);
@@ -41,9 +37,8 @@ public final class ApiGatewayServer {
                     .handler(new LoggingHandler(LogLevel.INFO))
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
-                        public void initChannel(SocketChannel ch) throws Exception {
-                            ChannelPipeline p = ch.pipeline();
-                            p.addLast(new ApiGatewayServerHandler());
+                        public void initChannel(SocketChannel ch) {
+                            ch.pipeline().addLast(new ApiGatewayServerHandler());
                         }
                     });
             ChannelFuture f = b.bind(PORT).sync();

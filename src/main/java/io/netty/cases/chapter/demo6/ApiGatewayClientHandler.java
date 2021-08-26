@@ -16,27 +16,17 @@
 package io.netty.cases.chapter.demo6;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 
-/**
- * Created by 李林峰 on 2018/8/11.
- */
 public class ApiGatewayClientHandler extends ChannelInboundHandlerAdapter {
-
-    private final ByteBuf firstMessage;
-
-    public ApiGatewayClientHandler() {
-        firstMessage = Unpooled.buffer(ApiGatewayClient.MSG_SIZE);
-        for (int i = 0; i < firstMessage.capacity(); i++) {
-            firstMessage.writeByte((byte) i);
-        }
+    private static ByteBuf genMsg(ChannelHandlerContext ctx) {
+        return ctx.alloc().buffer().writeBytes("are you ok?".getBytes());
     }
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
-        ctx.writeAndFlush(firstMessage);
+        ctx.writeAndFlush(genMsg(ctx));
     }
 
     @Override

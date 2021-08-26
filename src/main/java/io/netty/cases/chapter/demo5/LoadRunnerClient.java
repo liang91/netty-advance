@@ -21,15 +21,8 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 
-/**
- * Created by 李林峰 on 2018/8/11.
- */
 public final class LoadRunnerClient {
 
-    static final String HOST = System.getProperty("host", "127.0.0.1");
-    static final int PORT = Integer.parseInt(System.getProperty("port", "18085"));
-
-    @SuppressWarnings({"unchecked", "deprecation"})
     public static void main(String[] args) throws Exception {
         EventLoopGroup group = new NioEventLoopGroup();
         try {
@@ -37,17 +30,17 @@ public final class LoadRunnerClient {
             b.group(group)
                     .channel(NioSocketChannel.class)
                     .option(ChannelOption.TCP_NODELAY, true)
-                    .option(ChannelOption.WRITE_BUFFER_HIGH_WATER_MARK, 10 * 1024 * 1024)
+                    .option(ChannelOption.WRITE_BUFFER_WATER_MARK, WriteBufferWaterMark.DEFAULT)
                     .handler(new ChannelInitializer<SocketChannel>() {
                         @Override
-                        public void initChannel(SocketChannel ch) throws Exception {
+                        public void initChannel(SocketChannel ch) {
                             ChannelPipeline p = ch.pipeline();
 //                     p.addLast(new LoadRunnerClientHandler());
 //                     p.addLast(new LoadRunnerWaterClientHandler());
                             p.addLast(new LoadRunnerSleepClientHandler());
                         }
                     });
-            ChannelFuture f = b.connect(HOST, PORT).sync();
+            ChannelFuture f = b.connect("127.0.0.1", 18085).sync();
             f.channel().closeFuture().sync();
         } finally {
             group.shutdownGracefully();

@@ -23,12 +23,9 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 
-/**
- * Created by 李林峰 on 2018/8/11.
- */
 public final class EchoServer {
 
-    static final int PORT = Integer.parseInt(System.getProperty("port", "18085"));
+    private static final int PORT = 18085;
 
     public static void main(String[] args) throws Exception {
         EventLoopGroup bossGroup = new NioEventLoopGroup(1);
@@ -41,9 +38,8 @@ public final class EchoServer {
                     .handler(new LoggingHandler(LogLevel.INFO))
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
-                        public void initChannel(SocketChannel ch) throws Exception {
-                            ChannelPipeline p = ch.pipeline();
-                            p.addLast(new EchoServerHandler());
+                        public void initChannel(SocketChannel ch) {
+                            ch.pipeline().addLast(new EchoServerHandler());
                         }
                     });
             ChannelFuture f = b.bind(PORT).sync();

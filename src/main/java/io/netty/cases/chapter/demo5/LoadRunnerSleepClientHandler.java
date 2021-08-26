@@ -16,59 +16,26 @@
 package io.netty.cases.chapter.demo5;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.ReferenceCountUtil;
 
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
-/**
- * Created by 李林峰 on 2018/8/11.
- */
 public class LoadRunnerSleepClientHandler extends ChannelInboundHandlerAdapter {
-
-    static final int SIZE = Integer.parseInt(System.getProperty("size", "10240"));
-    private final ByteBuf firstMessage;
-    Runnable loadRunner;
-    AtomicLong sendSum = new AtomicLong(0);
-    Runnable profileMonitor;
-
-    /**
-     * Creates a client-side handler.
-     */
-    public LoadRunnerSleepClientHandler() {
-        firstMessage = Unpooled.buffer(SIZE);
-        for (int i = 0; i < firstMessage.capacity(); i++) {
-            firstMessage.writeByte((byte) i);
-        }
-    }
 
     @Override
     public void channelActive(final ChannelHandlerContext ctx) {
-        loadRunner = new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    TimeUnit.SECONDS.sleep(30);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                ByteBuf msg = null;
-                while (true) {
-                    byte[] body = new byte[SIZE];
-                    msg = Unpooled.wrappedBuffer(body);
+        new Thread(() -> {
+            while (true) {
+                if (ctx.channel().isWritable()) {
+                    ByteBuf msg = ctx.alloc().buffer().writeBytes("are you ok?".getBytes());
                     ctx.writeAndFlush(msg);
-                    try {
-                        TimeUnit.MILLISECONDS.sleep(1);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
+                } else {
+                    System.out.println(ctx.channel().unsafe().outboundBuffer().nioBufferSize());
                 }
             }
-        };
-        new Thread(loadRunner, "LoadRunner-Thread").start();
+        }, "LoadRunner").start();
     }
 
     @Override
@@ -80,5 +47,13 @@ public class LoadRunnerSleepClientHandler extends ChannelInboundHandlerAdapter {
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         cause.printStackTrace();
         ctx.close();
+    }
+
+    private void sleep(int milliseconds) {
+        try {
+            TimeUnit.MICROSECONDS.sleep(milliseconds);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 }
