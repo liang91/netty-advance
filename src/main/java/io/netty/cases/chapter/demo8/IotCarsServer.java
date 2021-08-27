@@ -23,32 +23,24 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 
-/**
- * Created by 李林峰 on 2018/8/18.
- */
 public final class IotCarsServer {
 
-    static final int PORT = Integer.parseInt(System.getProperty("port", "18087"));
-
     public static void main(String[] args) throws Exception {
-        EventLoopGroup bossGroup = new NioEventLoopGroup(1);
+        EventLoopGroup bossGroup = new NioEventLoopGroup();
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         try {
             ServerBootstrap b = new ServerBootstrap();
             b.group(bossGroup, workerGroup)
                     .channel(NioServerSocketChannel.class)
-                    .option(ChannelOption.SO_BACKLOG, 100)
+                    .option(ChannelOption.SO_BACKLOG, 256)
                     .handler(new LoggingHandler(LogLevel.INFO))
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
-                        public void initChannel(SocketChannel ch) throws Exception {
-                            ChannelPipeline p = ch.pipeline();
-//                     p.addLast(new IotCarsServerHandler());
-                            p.addLast(new IotCarsDiscardServerHandler());
-                            p.addLast();
+                        public void initChannel(SocketChannel ch) {
+                            ch.pipeline().addLast(new IotCarsDiscardServerHandler());
                         }
                     });
-            ChannelFuture f = b.bind(PORT).sync();
+            ChannelFuture f = b.bind(18087).sync();
             f.channel().closeFuture().sync();
         } finally {
             bossGroup.shutdownGracefully();

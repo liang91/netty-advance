@@ -16,34 +16,18 @@
 package io.netty.cases.chapter.demo8;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-
 import java.util.concurrent.TimeUnit;
 
-/**
- * Created by 李林峰 on 2018/8/18.
- */
 public class IotCarsClientHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
-        new Thread(() ->
-        {
-            while (true) {
-                ByteBuf firstMessage = Unpooled.buffer(IotCarsClient.MSG_SIZE);
-                for (int i = 0; i < firstMessage.capacity(); i++) {
-                    firstMessage.writeByte((byte) i);
-                }
-                ctx.writeAndFlush(firstMessage);
-                try {
-                    TimeUnit.MILLISECONDS.sleep(1);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }).start();
+        ctx.executor().scheduleAtFixedRate(() -> {
+            ByteBuf byteBuf = ctx.alloc().buffer().writeBytes("are you ok?".getBytes());
+            ctx.writeAndFlush(byteBuf);
+        }, 20000, 500, TimeUnit.MILLISECONDS);
     }
 
     @Override
