@@ -24,26 +24,17 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * Created by 鏉庢灄宄� on 2018/9/2
- */
 public class EventTriggerClientHandler extends ChannelInboundHandlerAdapter {
-
-    static final String ECHO_REQ = "Hi,welcome to Netty ";
-    static final String DELIMITER = "$_";
-    static ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
+    private static final String ECHO_REQ = "Hi,welcome to Netty ";
+    private static final String DELIMITER = "$_";
     private static final AtomicInteger SEQ = new AtomicInteger(0);
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
-        scheduledExecutorService.scheduleAtFixedRate(()
-                -> {
-            int counter = SEQ.incrementAndGet();
-            if (counter % 10 == 0) {
-                ctx.writeAndFlush(Unpooled.copiedBuffer((ECHO_REQ + DELIMITER).getBytes()));
-            } else
-                ctx.writeAndFlush(Unpooled.copiedBuffer(ECHO_REQ.getBytes()));
-        }, 0, 1000, TimeUnit.MILLISECONDS);
+        Executors.newScheduledThreadPool(1).scheduleAtFixedRate(() -> {
+            String msg = SEQ.incrementAndGet() % 10 == 0 ? ECHO_REQ + DELIMITER : ECHO_REQ;
+            ctx.writeAndFlush(Unpooled.copiedBuffer(msg.getBytes()));
+        }, 0, 1, TimeUnit.SECONDS);
     }
 
     @Override

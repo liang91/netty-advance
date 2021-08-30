@@ -20,40 +20,32 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.util.ReferenceCountUtil;
 
-/**
- * @author lilinfeng
- * @version 1.0
- * @date 2014骞�2鏈�14鏃�
- */
 @Sharable
 public class EventTriggerServerHandler extends ChannelInboundHandlerAdapter {
-
-    int counter;
-
-    int readCompleteTimes;
+    private static int counter;
+    private static int readCompleteTimes;
 
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg)
-            throws Exception {
+    public void channelRead(ChannelHandlerContext ctx, Object msg) {
         String body = (String) msg;
-        System.out.println("This is " + ++counter + " times receive client : ["
-                + body + "]");
+        System.out.println("channelRead count:" + ++counter + " body:[" + body + "]");
         body += "$_";
         ByteBuf echo = Unpooled.copiedBuffer(body.getBytes());
         ctx.writeAndFlush(echo);
+        ReferenceCountUtil.release(msg);
     }
 
     @Override
-    public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
+    public void channelReadComplete(ChannelHandlerContext ctx) {
         ctx.fireChannelReadComplete();
-        readCompleteTimes++;
-        System.out.println("This is " + readCompleteTimes + " times receive ReadComplete event.");
+        System.out.println("channelReadComplete count:" + ++readCompleteTimes);
     }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         cause.printStackTrace();
-        ctx.close();// 鍙戠敓寮傚父锛屽叧闂摼璺�
+        ctx.close();
     }
 }

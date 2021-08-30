@@ -30,24 +30,8 @@ import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 
-/**
- * Created by 鏉庢灄宄� on 2018/9/2
- */
 public class EventTriggerServer {
     public static void main(String[] args) throws Exception {
-        int port = 18090;
-        if (args != null && args.length > 0) {
-            try {
-                port = Integer.valueOf(args[0]);
-            } catch (NumberFormatException e) {
-                // 閲囩敤榛樿鍊�
-            }
-        }
-        new EventTriggerServer().bind(port);
-    }
-
-    public void bind(int port) throws Exception {
-        // 閰嶇疆鏈嶅姟绔殑NIO绾跨▼缁�
         EventLoopGroup bossGroup = new NioEventLoopGroup();
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         try {
@@ -58,23 +42,16 @@ public class EventTriggerServer {
                     .handler(new LoggingHandler(LogLevel.INFO))
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
-                        public void initChannel(SocketChannel ch)
-                                throws Exception {
-                            ByteBuf delimiter = Unpooled.copiedBuffer("$_"
-                                    .getBytes());
-                            ch.pipeline().addLast(
-                                    new DelimiterBasedFrameDecoder(2048,
-                                            delimiter));
+                        public void initChannel(SocketChannel ch) {
+                            ByteBuf delimiter = Unpooled.copiedBuffer("$_".getBytes());
+                            ch.pipeline().addLast(new DelimiterBasedFrameDecoder(2048, delimiter));
                             ch.pipeline().addLast(new StringDecoder());
                             ch.pipeline().addLast(new EventTriggerServerHandler());
                         }
                     });
-            // 缁戝畾绔彛锛屽悓姝ョ瓑寰呮垚鍔�
-            ChannelFuture f = b.bind(port).sync();
-            // 绛夊緟鏈嶅姟绔洃鍚鍙ｅ叧闂�
+            ChannelFuture f = b.bind(18090).sync();
             f.channel().closeFuture().sync();
         } finally {
-            // 浼橀泤閫�鍑猴紝閲婃斁绾跨▼姹犺祫婧�
             bossGroup.shutdownGracefully();
             workerGroup.shutdownGracefully();
         }

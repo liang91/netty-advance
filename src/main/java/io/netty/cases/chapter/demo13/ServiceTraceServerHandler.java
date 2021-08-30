@@ -24,20 +24,13 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * Created by 李林峰 on 2018/8/19.
- */
 public class ServiceTraceServerHandler extends ChannelInboundHandlerAdapter {
     static ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
-    AtomicInteger totalSendBytes = new AtomicInteger(0);
+    private static final AtomicInteger totalSendBytes = new AtomicInteger(0);
 
     @Override
-    public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        scheduledExecutorService.scheduleAtFixedRate(() ->
-        {
-            int qps = totalSendBytes.getAndSet(0);
-            System.out.println("The server write rate is : " + qps + " bytes/s");
-        }, 0, 1000, TimeUnit.MILLISECONDS);
+    public void channelActive(ChannelHandlerContext ctx) {
+        scheduledExecutorService.scheduleAtFixedRate(() -> System.out.println("server write speed:" + totalSendBytes.getAndSet(0) + " bytes/s"), 0, 1, TimeUnit.SECONDS);
     }
 
     public void channelRead(ChannelHandlerContext ctx, Object msg) {

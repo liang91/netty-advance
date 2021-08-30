@@ -24,24 +24,8 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 
-/**
- * Created by 李林峰 on 2018/8/19.
- */
 public class ServiceTraceClient {
-
-    static final String HOST = System.getProperty("host", "127.0.0.1");
-    static final int PORT = Integer.parseInt(System.getProperty("port", "18089"));
-    static final int MSG_SIZE = 256;
-
     public static void main(String[] args) throws Exception {
-        new ServiceTraceClient().run();
-    }
-
-    public void run() throws Exception {
-        connect();
-    }
-
-    public void connect() throws Exception {
         EventLoopGroup group = new NioEventLoopGroup(8);
         Bootstrap b = new Bootstrap();
         b.group(group)
@@ -49,12 +33,13 @@ public class ServiceTraceClient {
                 .option(ChannelOption.TCP_NODELAY, true)
                 .handler(new ChannelInitializer<SocketChannel>() {
                     @Override
-                    public void initChannel(SocketChannel ch) throws Exception {
+                    public void initChannel(SocketChannel ch) {
                         ch.pipeline().addLast(new ServiceTraceClientHandler());
                     }
                 });
-        ChannelFuture f = b.connect(HOST, PORT).sync();
+        ChannelFuture f = b.connect("127.0.0.1", 18089).sync();
         f.channel().closeFuture().sync();
         group.shutdownGracefully();
     }
+
 }

@@ -16,62 +16,51 @@
 package io.netty.cases.chapter.demo13;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.channel.*;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.concurrent.EventExecutor;
+import io.netty.util.concurrent.EventExecutorGroup;
 import io.netty.util.concurrent.SingleThreadEventExecutor;
 
-import java.util.Iterator;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * Created by 李林峰 on 2018/8/19.
- */
 public class ServiceTraceServerHandlerV2 extends ChannelInboundHandlerAdapter {
-    static ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
-    static ScheduledExecutorService kpiExecutorService = Executors.newSingleThreadScheduledExecutor();
-    static ScheduledExecutorService writeQueKpiExecutorService = Executors.newSingleThreadScheduledExecutor();
-    AtomicInteger totalSendBytes = new AtomicInteger(0);
+    private static final AtomicInteger totalSendBytes = new AtomicInteger(0);
+    private static volatile EventExecutorGroup executorGroup = null;
+    private static volatile List<Channel> channels = new ArrayList<>();
+
+    static {
+        Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(() -> {
+            System.out.println("server write speed:" + totalSendBytes.getAndSet(0) + " bytes/s");
+            if (executorGroup != null) {
+                for (EventExecutor eventExecutor : executorGroup) {
+                    SingleThreadEventExecutor executor = (SingleThreadEventExecutor) eventExecutor;
+                    System.out.println(executor + " queued task:" + executor.pendingTasks());
+                }
+            }
+            for (Channel channel : channels) {
+                System.out.println(channel + " pending byte:" + channel.unsafe().outboundBuffer().totalPendingWriteBytes());
+            }
+        }, 0, 1, TimeUnit.SECONDS);
+    }
 
     @Override
-    public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        scheduledExecutorService.scheduleAtFixedRate(() ->
-        {
-            int qps = totalSendBytes.getAndSet(0);
-            System.out.println("The server write rate is : " + qps + " bytes/s");
-        }, 0, 1000, TimeUnit.MILLISECONDS);
-        kpiExecutorService.scheduleAtFixedRate(() ->
-        {
-            Iterator<EventExecutor> executorGroups = ctx.executor().parent().iterator();
-            while (executorGroups.hasNext()) {
-                SingleThreadEventExecutor executor = (SingleThreadEventExecutor) executorGroups.next();
-                int size = executor.pendingTasks();
-                if (executor == ctx.executor())
-                    System.out.println(ctx.channel() + "--> " + executor + " pending size in queue is : --> " + size);
-                else
-                    System.out.println(executor + " pending size in queue is : --> " + size);
-            }
-        }, 0, 1000, TimeUnit.MILLISECONDS);
-        writeQueKpiExecutorService.scheduleAtFixedRate(() ->
-        {
-            long pendingSize = ((NioSocketChannel) ctx.channel()).unsafe().outboundBuffer().totalPendingWriteBytes();
-            System.out.println(ctx.channel() + "--> " + " ChannelOutboundBuffer's totalPendingWriteBytes is : "
-                    + pendingSize + " bytes");
-        }, 0, 1000, TimeUnit.MILLISECONDS);
+    public void channelActive(ChannelHandlerContext ctx) {
+        if (executorGroup == null) {
+            executorGroup = ctx.executor().parent();
+        }
+        channels.add(ctx.channel());
     }
 
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
         int sendBytes = ((ByteBuf) msg).readableBytes();
         ChannelFuture writeFuture = ctx.write(msg);
-        writeFuture.addListener((f) ->
-        {
-            totalSendBytes.getAndAdd(sendBytes);
-        });
+        writeFuture.addListener((f) -> totalSendBytes.getAndAdd(sendBytes));
         ctx.flush();
     }
 
