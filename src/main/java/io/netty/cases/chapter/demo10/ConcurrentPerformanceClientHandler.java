@@ -16,32 +16,59 @@
 package io.netty.cases.chapter.demo10;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.util.ReferenceCountUtil;
 
+import java.util.ArrayList;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * Created by 李林峰 on 2018/8/19.
- */
 public class ConcurrentPerformanceClientHandler extends ChannelInboundHandlerAdapter {
-    static ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+    private static final AtomicInteger sender = new AtomicInteger();
+    private static final AtomicInteger receiver = new AtomicInteger();
+    private static final ArrayList<Long> times = new ArrayList<>();
+
+    static {
+        Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(() -> {
+            synchronized (times) {
+                long max = 0, min = Integer.MAX_VALUE;
+                for (Long time : times) {
+                    if (max < time)
+                        max = time;
+                    if (min > time)
+                        min = time;
+                }
+                long average = (long) times.stream().mapToLong(l -> l).average().getAsDouble();
+                times.clear();
+                System.out.printf("send:%d receive:%d average:%d max:%d min:%d\n", sender.getAndSet(0), receiver.getAndSet(0), average / 1000000, max / 1000000, min / 1000000);
+            }
+        }, 1, 1, TimeUnit.SECONDS);
+    }
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
-        scheduledExecutorService.scheduleAtFixedRate(() ->
-        {
-            for (int i = 0; i < 100; i++) {
-                ByteBuf firstMessage = Unpooled.buffer(ConcurrentPerformanceClient.MSG_SIZE);
-                for (int k = 0; k < firstMessage.capacity(); k++) {
-                    firstMessage.writeByte((byte) k);
+        ctx.executor().scheduleAtFixedRate(() -> {
+            for (int i = 0; i < 45; i++) {
+                if (ctx.channel().isWritable()) {
+                    sender.incrementAndGet();
+                    ByteBuf data = ctx.alloc().buffer();
+                    data.writeLong(System.nanoTime());
+                    ctx.writeAndFlush(data);
                 }
-                ctx.writeAndFlush(firstMessage);
             }
-        }, 0, 1000, TimeUnit.MILLISECONDS);
+        }, 0, 1, TimeUnit.SECONDS);
+    }
+
+    @Override
+    public void channelRead(ChannelHandlerContext ctx, Object msg) {
+        receiver.incrementAndGet();
+        ByteBuf req = (ByteBuf) msg;
+        synchronized (times) {
+            times.add(System.nanoTime() - req.readLong());
+        }
+        ReferenceCountUtil.release(req);
     }
 
     @Override

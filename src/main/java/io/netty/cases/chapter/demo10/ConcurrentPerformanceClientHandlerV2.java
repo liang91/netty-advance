@@ -15,8 +15,6 @@
  */
 package io.netty.cases.chapter.demo10;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 
@@ -32,14 +30,7 @@ public class ConcurrentPerformanceClientHandlerV2 extends ChannelInboundHandlerA
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
-        scheduledExecutorService.scheduleAtFixedRate(() ->
-        {
-            ByteBuf firstMessage = Unpooled.buffer(ConcurrentPerformanceClient.MSG_SIZE);
-            for (int k = 0; k < firstMessage.capacity(); k++) {
-                firstMessage.writeByte((byte) k);
-            }
-            ctx.writeAndFlush(firstMessage);
-        }, 0, 1000, TimeUnit.MILLISECONDS);
+        scheduledExecutorService.scheduleAtFixedRate(() -> ctx.writeAndFlush(ctx.alloc().buffer().writeBytes("are you ok?\n".getBytes())), 0, 1000, TimeUnit.MILLISECONDS);
     }
 
     @Override

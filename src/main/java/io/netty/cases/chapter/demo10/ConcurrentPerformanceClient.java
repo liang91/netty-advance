@@ -16,45 +16,37 @@
 package io.netty.cases.chapter.demo10;
 
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.EventLoopGroup;
+import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.FixedLengthFrameDecoder;
 
-/**
- * Created by 李林峰 on 2018/8/19.
- */
+import java.util.ArrayList;
+import java.util.List;
+
 public class ConcurrentPerformanceClient {
 
-    static final String HOST = System.getProperty("host", "127.0.0.1");
-    static final int PORT = Integer.parseInt(System.getProperty("port", "18088"));
-    static final int MSG_SIZE = 256;
-
     public static void main(String[] args) throws Exception {
-        new ConcurrentPerformanceClient().run();
-    }
-
-    public void run() throws Exception {
-        connect();
-    }
-
-    public void connect() throws Exception {
-        EventLoopGroup group = new NioEventLoopGroup(8);
+        EventLoopGroup group = new NioEventLoopGroup();
         Bootstrap b = new Bootstrap();
         b.group(group)
                 .channel(NioSocketChannel.class)
-                .option(ChannelOption.TCP_NODELAY, true)
+                .option(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(16, 32))
                 .handler(new ChannelInitializer<SocketChannel>() {
                     @Override
-                    public void initChannel(SocketChannel ch) throws Exception {
+                    public void initChannel(SocketChannel ch) {
+                        ch.pipeline().addLast(new FixedLengthFrameDecoder(8));
                         ch.pipeline().addLast(new ConcurrentPerformanceClientHandler());
                     }
                 });
-        ChannelFuture f = b.connect(HOST, PORT).sync();
-        f.channel().closeFuture().sync();
+        List<ChannelFuture> channelFutures = new ArrayList<>();
+        for (int i = 0; i < 200; i++) {
+            channelFutures.add(b.connect("127.0.0.1", 18088).sync().channel().closeFuture());
+        }
+        for (ChannelFuture future : channelFutures) {
+            future.sync();
+        }
         group.shutdownGracefully();
     }
 }
