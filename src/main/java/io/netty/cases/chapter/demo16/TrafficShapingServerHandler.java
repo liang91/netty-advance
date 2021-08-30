@@ -16,7 +16,7 @@
 package io.netty.cases.chapter.demo16;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -26,38 +26,36 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * @author lilinfeng
- * @version 1.0
- * @date 2014骞�2鏈�14鏃�
- */
 @Sharable
 public class TrafficShapingServerHandler extends ChannelInboundHandlerAdapter {
+    private final ScheduledExecutorService es = Executors.newSingleThreadScheduledExecutor();
+    private final AtomicInteger counter = new AtomicInteger(0);
+    private Channel channel;
 
-    static ScheduledExecutorService es = Executors.newScheduledThreadPool(1);
-    AtomicInteger counter = new AtomicInteger(0);
-
-    public TrafficShapingServerHandler() {
-        es.scheduleAtFixedRate(() ->
-        {
-            System.out.println("The server receive client rate is : " + counter.getAndSet(0) + " bytes/s");
-        }, 0, 1000, TimeUnit.MILLISECONDS);
-
+    @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        channel = ctx.channel();
+        es.scheduleAtFixedRate(() -> System.out.println("channel:" + channel + " read speed:[" + counter.getAndSet(0) + " bytes/s]"), 0, 1, TimeUnit.SECONDS);
+        super.channelActive(ctx);
     }
 
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg)
-            throws Exception {
+    public void channelRead(ChannelHandlerContext ctx, Object msg) {
         String body = (String) msg;
         counter.addAndGet(body.getBytes().length);
-        body += "$_";
-        ByteBuf echo = Unpooled.copiedBuffer(body.getBytes());
+        ByteBuf echo = ctx.alloc().buffer().writeBytes(body.getBytes());
         ctx.writeAndFlush(echo);
+    }
+
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        es.shutdown();
+        super.channelInactive(ctx);
     }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         cause.printStackTrace();
-        ctx.close();// 鍙戠敓寮傚父锛屽叧闂摼璺�
+        ctx.close();
     }
 }

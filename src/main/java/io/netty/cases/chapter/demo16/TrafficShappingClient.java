@@ -25,32 +25,12 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.codec.DelimiterBasedFrameDecoder;
+import io.netty.handler.codec.FixedLengthFrameDecoder;
 import io.netty.handler.codec.string.StringDecoder;
 
-/**
- * Created by 鏉庢灄宄� on 2018/9/2
- */
 public class TrafficShappingClient {
 
-    /**
-     * @param args
-     * @throws Exception
-     */
     public static void main(String[] args) throws Exception {
-        int port = 18091;
-        if (args != null && args.length > 0) {
-            try {
-                port = Integer.valueOf(args[0]);
-            } catch (NumberFormatException e) {
-                // 閲囩敤榛樿鍊�
-            }
-        }
-        new TrafficShappingClient().connect(port, "127.0.0.1");
-    }
-
-    public void connect(int port, String host) throws Exception {
-        // 閰嶇疆瀹㈡埛绔疦IO绾跨▼缁�
         EventLoopGroup group = new NioEventLoopGroup();
         try {
             Bootstrap b = new Bootstrap();
@@ -58,23 +38,15 @@ public class TrafficShappingClient {
                     .option(ChannelOption.TCP_NODELAY, true)
                     .handler(new ChannelInitializer<SocketChannel>() {
                         @Override
-                        public void initChannel(SocketChannel ch)
-                                throws Exception {
-                            ByteBuf delimiter = Unpooled.copiedBuffer("$_"
-                                    .getBytes());
-                            ch.pipeline().addLast(
-                                    new DelimiterBasedFrameDecoder(2048 * 1024,
-                                            delimiter));
+                        public void initChannel(SocketChannel ch) {
+                            ch.pipeline().addLast(new FixedLengthFrameDecoder(1024 * 1024));
                             ch.pipeline().addLast(new StringDecoder());
                             ch.pipeline().addLast(new TrafficShappingClientHandler());
                         }
                     });
-            // 鍙戣捣寮傛杩炴帴鎿嶄綔
-            ChannelFuture f = b.connect(host, port).sync();
-            // 褰撲唬瀹㈡埛绔摼璺叧闂�
+            ChannelFuture f = b.connect("127.0.0.1", 18091).sync();
             f.channel().closeFuture().sync();
         } finally {
-            // 浼橀泤閫�鍑猴紝閲婃斁NIO绾跨▼缁�
             group.shutdownGracefully();
         }
     }

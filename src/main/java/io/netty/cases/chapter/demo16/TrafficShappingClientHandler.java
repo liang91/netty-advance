@@ -25,31 +25,21 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * Created by 鏉庢灄宄� on 2018/9/2
- */
 public class TrafficShappingClientHandler extends ChannelInboundHandlerAdapter {
-
-    static final byte[] ECHO_REQ = new byte[1024 * 1024];
-    static final String DELIMITER = "$_";
-    static ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
-    private static final AtomicInteger SEQ = new AtomicInteger(0);
+    private static final byte[] DATA = new byte[1024 * 1024];
+    private static final ScheduledExecutorService es = Executors.newSingleThreadScheduledExecutor();
+    private static final AtomicInteger speed = new AtomicInteger(0);
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
-        scheduledExecutorService.scheduleAtFixedRate(()
-                -> {
-            ByteBuf buf = null;
-            for (int i = 0; i < 10; i++) {
-                buf = Unpooled.copiedBuffer(ECHO_REQ, DELIMITER.getBytes());
-                SEQ.getAndAdd(buf.readableBytes());
-                if (ctx.channel().isWritable())
-                    ctx.write(buf);
+        es.scheduleAtFixedRate(() -> {
+            ByteBuf buf = Unpooled.copiedBuffer(DATA);
+            if (ctx.channel().isWritable()) {
+                speed.getAndAdd(buf.readableBytes());
+                ctx.writeAndFlush(buf);
             }
-            ctx.flush();
-            int counter = SEQ.getAndSet(0);
-            System.out.println("The client send rate is : " + counter + " bytes/s");
-        }, 0, 1000, TimeUnit.MILLISECONDS);
+            System.out.println("channel:" + ctx.channel() + " send rate:[" + speed.getAndSet(0) + " bytes/s]");
+        }, 0, 1, TimeUnit.SECONDS);
     }
 
     @Override
