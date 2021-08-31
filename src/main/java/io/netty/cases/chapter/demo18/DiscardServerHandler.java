@@ -21,27 +21,31 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.ssl.SslHandshakeCompletionEvent;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 /**
  * Handles a server-side channel.
  */
 @ChannelHandler.Sharable
 public class DiscardServerHandler extends SimpleChannelInboundHandler<Object> {
+    static AtomicInteger counter = new AtomicInteger();
 
     @Override
-    public void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
+    public void channelRead0(ChannelHandlerContext ctx, Object msg) {
         // discard
     }
 
     @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        // Close the connection when an exception is raised.
-        cause.printStackTrace();
-        ctx.close();
+    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) {
+        if (evt == SslHandshakeCompletionEvent.SUCCESS) {
+            System.out.println(counter.incrementAndGet());
+            HttpSessions.channelMap.put(ctx.channel().id().toString(), (NioSocketChannel) ctx.channel());
+        }
     }
 
     @Override
-    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
-        if (evt == SslHandshakeCompletionEvent.SUCCESS)
-            HttpSessions.channelMap.put(ctx.channel().id().toString(), (NioSocketChannel) ctx.channel());
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+        cause.printStackTrace();
+        ctx.close();
     }
 }

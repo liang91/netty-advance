@@ -27,18 +27,12 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 
-/**
- * Discards any incoming data.
- */
 public final class DiscardServer {
-
-    static final int PORT = Integer.parseInt(System.getProperty("port", "8443"));
 
     public static void main(String[] args) throws Exception {
         // Configure SSL.
-        final SslContext sslCtx;
         SelfSignedCertificate ssc = new SelfSignedCertificate();
-        sslCtx = SslContextBuilder.forServer(ssc.certificate(), ssc.privateKey()).build();
+        SslContext sslCtx = SslContextBuilder.forServer(ssc.certificate(), ssc.privateKey()).build();
         EventLoopGroup bossGroup = new NioEventLoopGroup(1);
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         try {
@@ -49,17 +43,13 @@ public final class DiscardServer {
                         @Override
                         public void initChannel(SocketChannel ch) {
                             ChannelPipeline p = ch.pipeline();
-                            if (sslCtx != null) {
-                                p.addLast(sslCtx.newHandler(ch.alloc()));
-                            }
+                            p.addLast(sslCtx.newHandler(ch.alloc()));
                             p.addLast(new DiscardServerHandler());
                         }
                     });
             // Bind and start to accept incoming connections.
-            ChannelFuture f = b.bind(PORT).sync();
+            ChannelFuture f = b.bind(8443).sync();
             // Wait until the server socket is closed.
-            // In this example, this does not happen, but you can do that to gracefully
-            // shut down your server.
             f.channel().closeFuture().sync();
         } finally {
             workerGroup.shutdownGracefully();

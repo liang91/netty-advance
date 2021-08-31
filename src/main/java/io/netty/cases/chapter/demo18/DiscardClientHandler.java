@@ -15,34 +15,27 @@
  */
 package io.netty.cases.chapter.demo18;
 
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Handles a client-side channel.
  */
 public class DiscardClientHandler extends SimpleChannelInboundHandler<Object> {
-
-    static AtomicInteger sum = new AtomicInteger(0);
-    private ByteBuf content;
-    private ChannelHandlerContext ctx;
-
-    @Override
-    public void channelActive(ChannelHandlerContext ctx) {
-        if (sum.incrementAndGet() % 3 == 0)
-            ctx.close();
-    }
+//    static AtomicInteger sum = new AtomicInteger(0);
+//
+//    @Override
+//    public void channelActive(ChannelHandlerContext ctx) {
+//        if (sum.incrementAndGet() % 3 == 0)
+//            ctx.close();
+//    }
 
     @Override
-    public void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
+    public void channelRead0(ChannelHandlerContext ctx, Object msg) {
     }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        // Close the connection when an exception is raised.
         cause.printStackTrace();
         ctx.close();
     }
